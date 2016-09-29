@@ -13,20 +13,24 @@ from data import *
 import pprint
 import sqlite3
 #import pymongo
-OSM_FILE = 'example.osm'
+OSM_FILE = "lawrenceville.osm"
+k = 40 # Parameter: take every k-th top level element
+
+#import extra.py
 
 from mapparser import count_tags
 ct = count_tags(OSM_FILE)
 pprint.pprint(ct)
 import tags as tg
-
+print "c1"
 import users
-
+print "c1"
 from audit import audit
-
+print "c1"
 import data
-
+print "c1"
 data = process_map(OSM_FILE, True)
+print "c1"
 st_types = audit(OSM_FILE)
 pprint.pprint(dict(st_types))
 tg.process_map(OSM_FILE)
@@ -38,7 +42,7 @@ c.execute('DROP TABLE IF EXISTS ways_tags')
 c.execute('DROP TABLE IF EXISTS ways_nodes')
 c.execute('DROP TABLE IF EXISTS nodes_tags')
 c.execute('DROP TABLE IF EXISTS ways')
-c.execute('DROP TABLE nodes')
+c.execute('DROP TABLE IF EXISTS nodes')
 
 #id	user	uid	version	changeset	timestamp
 c.execute('CREATE TABLE ways(id text, user text, uid text, version text, changeset text, timestamp text)')
@@ -82,83 +86,65 @@ with open('nodes.csv') as f:
         c.execute("INSERT INTO nodes VALUES (?,?,?,?,?,?,?,?);", field)
 conn.commit()
 
-# Sort Postal codes by count, descending
-c.execute('SELECT tags.value, COUNT(*) as count \
-FROM (SELECT * FROM nodes_tags \
-      UNION ALL \
-      SELECT * FROM ways_tags) tags\
-WHERE tags.key="postcode"\
-GROUP BY tags.value \
-ORDER BY count DESC');
-print c.fetchall()
-
-#Sort cities by count, descending
-c.execute('SELECT tags.value, COUNT(*) as count \
-FROM (SELECT * FROM nodes_tags UNION ALL \
-      SELECT * FROM ways_tags) tags\
-WHERE tags.key LIKE "%city"\
-GROUP BY tags.value \
-ORDER BY count DESC');
-print c.fetchall()
-
 # Number of Nodes
-c.execute('SELECT COUNT(*), FROM nodes')
-print c.fetchall()
+results = c.execute('''SELECT COUNT(*) FROM nodes''');
+print list(results)
 
 # Number of Ways
-c.execute('SELECT COUNT(*), FROM ways')
-print c.fetchall()
-
-# Number of unique users
-c.execute('SELECT COUNT(DISTINCT(e.uid)) FROM (SELECT uid FROM nodes \
-UNION ALL SELECT uid FROM ways) e');
-print c.fetchall()
+results = c.execute('''SELECT COUNT(*) as count FROM ways''');
+print list(results)
 
 # Top 10 contributing users
-c.execute('SELECT e.user, COUNT(*) as num \
+results = c.execute('''SELECT e.user, COUNT(*) as num \
 FROM (SELECT user FROM nodes UNION ALL SELECT user FROM ways) e \
 GROUP BY e.user \
 ORDER BY num DESC \
-LIMIT 10')
-print c.fetchall()
+LIMIT 10\
+''');
+print list(results)
 
 # Number of users appearing only once
-c.execute('SELECT COUNT(*) \
+results = c.execute('''SELECT COUNT(*) \
 FROM\
     (SELECT e.user, COUNT(*) as num \
      FROM (SELECT user FROM nodes UNION ALL SELECT user FROM ways) e \
      GROUP BY e.user \
-     HAVING num=1)  u')
-print c.fetchall()
+     HAVING num=1)  u\
+''');
+print list(results)
 
 # Top 10 amenities
-c.execute('SELECT value, COUNT(*) as num \
+results = c.execute('''SELECT value, COUNT(*) as num \
 FROM nodes_tags \
-WHERE key="amenity" \
+WHERE key='amenity' \
 GROUP BY value \
 ORDER BY num DESC \
-LIMIT 10')
-print c.fetchall()
+LIMIT 10\
+''');
+print list(results)
 
 # Top religions
-c.execute('SELECT nodes_tags.value, COUNT(*) as num \
+results = c.execute('''SELECT nodes_tags.value, COUNT(*) as num \
 FROM nodes_tags \
     JOIN (SELECT DISTINCT(id) FROM nodes_tags \
-    WHERE value="place_of_worship") i \
+    WHERE value='place_of_worship') i \
     ON nodes_tags.id=i.id \
-WHERE nodes_tags.key="religion" \
+WHERE nodes_tags.key='religion' \
 GROUP BY nodes_tags.value \
-ORDER BY num DESC ')
-print c.fetchall()
+ORDER BY num DESC \
+''');
+print list(results)
 
 # Most popular cuisines
-c.execute('SELECT nodes_tags.value, COUNT(*) as num \
+results = c.execute('''SELECT nodes_tags.value, COUNT(*) as num \
 FROM nodes_tags \
-    JOIN (SELECT DISTINCT(id) FROM nodes_tags WHERE value="restaurant") i \
+    JOIN (SELECT DISTINCT(id) FROM nodes_tags WHERE value='restaurant') i \
     ON nodes_tags.id=i.id \
-WHERE nodes_tags.key="cuisine" \
+WHERE nodes_tags.key='cuisine' \
 GROUP BY nodes_tags.value \
-ORDER BY num DESC')
-print c.fetchall()
+ORDER BY num DESC\
+LIMIT 10\
+''');
+print list(results)
 
 conn.close()
