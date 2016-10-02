@@ -161,6 +161,8 @@ import xml.etree.cElementTree as ET
 
 import cerberus
 import schema
+from audit import phone_format
+
 
 #OSM_PATH = "example.osm"
 
@@ -188,6 +190,7 @@ def shape_element(element, node_attr_fields=NODE_FIELDS, way_attr_fields=WAY_FIE
     """Clean and shape node or way XML element to Python dict"""
 
     node_attribs = {}
+    node_tags_dict = {}
     way_attribs = {}
     way_nodes = []
     tags = []  # Handle secondary tags the same way for both node and way elements
@@ -218,6 +221,11 @@ def shape_element(element, node_attr_fields=NODE_FIELDS, way_attr_fields=WAY_FIE
                 tag["type"] = "regular"
                 tag["id"] = element.attrib["id"]
             if tag:
+                area_code = ['6', '7', '4', '(']
+                for code in area_code:
+                    if 'phone' in child.attrib['k'].lower() and child.attrib['v'].startswith(code):
+                        tag["value"] = phone_format(child.attrib['v'])
+
                 tags.append(tag)
         return {'node': node_attribs, 'node_tags': tags}
     elif element.tag == 'way':
